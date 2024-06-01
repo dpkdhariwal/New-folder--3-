@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dynamic Buttons with Attached Data</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="./jquery-validation-1.19.5/dist/jquery.validate.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js"></script>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <button id="createButton" class="btn btn-success">
+        Create New Button with Modal
+      </button>
+      <div id="buttonsContainer"></div>
+    </div>
+
+    <script>
+      class Modal {
+        constructor(modalId, title, bodyContent, actionBtnText, actionBtn) {
+          this.modalId = modalId;
+          this.title = title;
+          this.bodyContent = bodyContent;
+          this.actionBtnText = actionBtnText;
+          this.modal = null;
+          this.iti_data = {
+            name: "test name",
+            isworking: "yes",
+            mid: this.modalId,
+          };
+          this.actionBtn = actionBtn;
+        }
+
+        createModal() {
+          if (this.modal) return;
+          const uniqueId = 'id' + Math.random().toString(36).substr(2, 9);
+
+          this.modal = $(`
+                    <div class="modal fade" id="dynamicModal${this.modalId}" tabindex="-1" role="dialog" aria-labelledby="dynamicModalLabel${this.modalId}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="dynamicModalLabel${this.modalId}">${this.title}</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>${this.bodyContent}</p>
+                                    <button type="button" class="btn btn-info mt-2 check-instance">Check Instance Data</button>
+                                    <div id="inputContainer"></div>
+                                    <form id="myform_${uniqueId}">
+                                        <div class="form-group">
+                                            <label for="exampleFormControlTextarea1">Enter Description</label>
+                                            <textarea name="description" required class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-primary" id="dynamicActionBtn${this.modalId}">${this.actionBtnText}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+
+          // Check Instance Data button event
+          this.modal.find(".check-instance").on("click", () => {
+            console.log(`Instance data: ${this.modalId}`);
+            this.hideModal();
+          });
+
+          // Append modal to body
+          $("body").append(this.modal);
+
+          // Attach click event to the dynamic action button
+          $(`#dynamicActionBtn${this.modalId}`).on("click", () => {
+            // alert(`Action button in modal ${this.modalId} clicked!`);
+            // $(this.actionBtn).text("Sent");
+            // $(this.actionBtn).off("click", this.hideModal());
+            // Initialize jQuery Validate plugin
+            var validator = $(`#myform_${uniqueId}`).validate({
+              errorClass: "is-invalid",
+              validClass: "is-valid",
+              errorElement: "div",
+              errorPlacement: function (error, element) {
+                error.addClass("invalid-feedback");
+                error.insertAfter(element);
+              },
+              highlight: function (element, errorClass, validClass) {
+                $(element).addClass(errorClass).removeClass(validClass);
+              },
+              unhighlight: function (element, errorClass, validClass) {
+                $(element).removeClass(errorClass).addClass(validClass);
+              },
+              messages: {
+                description: {
+                  required: "Please enter your name",
+                  minlength: "Your name must consist of at least 2 characters",
+                },
+              },
+            });
+            // validator.element("#myselect");
+            validator.form();
+
+            // $(this.modal)
+            //   .find("#mySelect")
+            //   .rules("add", {
+            //     required: true,
+            //     messages: {
+            //       required: "Please select an option",
+            //     },
+            //   });
+            // let ell = $(this.modal).find("#mySelect");
+            // console.log(ell);
+            // const isValid = ell.valid();
+            // console.log(isValid);
+          });
+        }
+
+        showModal() {
+          this.createModal();
+          $(`#dynamicModal${this.modalId}`).modal("show");
+        }
+
+        hideModal() {
+          $(`#dynamicModal${this.modalId}`).modal("hide");
+        }
+      }
+
+      // Function to dynamically create buttons and attach modals to them
+      function createButton(
+        modalId,
+        buttonText,
+        modalTitle,
+        modalContent,
+        modalActionText,
+        dataObject,
+      ) {
+        const button = $(
+          `<button class="btn btn-primary openModalBtn" data-modal-id="${modalId}"  style="margin-right:10px;">${buttonText}</button>`,
+        );
+        const modal = new Modal(
+          modalId,
+          modalTitle,
+          modalContent,
+          modalActionText,
+          button,
+        );
+        button.data("info", dataObject);
+        button.data("modalInstance", modal);
+        $("#buttonsContainer").append(button);
+        button.on("click", function () {
+          const modalInstance = $(this).data("modalInstance");
+          const attachedData = $(this).data("info");
+          console.log(`Data attached to button ${modalId}:`, button);
+          modalInstance.showModal();
+        });
+      }
+
+      // Example of creating a button with an attached modal and data
+      let modalCounter = 1;
+      $("#createButton").on("click", function () {
+        const modalId = modalCounter++;
+        const dataObject = {
+          name: `Button ${modalId}`,
+          info: `Additional info for modal ${modalId}`,
+        };
+        createButton(
+          modalId,
+          `Open Modal ${modalId}`,
+          `Dynamic Modal Title ${modalId}`,
+          `This is the dynamically created content of modal ${modalId}.`,
+          `Action ${modalId}`,
+          dataObject,
+        );
+      });
+    </script>
+  </body>
+</html>
